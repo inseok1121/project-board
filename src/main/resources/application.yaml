@@ -1,0 +1,18 @@
+debug: false
+
+spring:
+  jpa:
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  datasource:
+    driverClassName: com.mysql.cj.jdbc.Driver
+    password: dlstjr153
+    username: songp
+    url: jdbc:mysql://localhost/board
+h2.console.enabled: true
+sql.init.mode: always
