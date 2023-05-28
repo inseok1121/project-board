@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityNotFoundException;
+
 @RequiredArgsConstructor
 @Transactional
 @Service
@@ -33,7 +35,8 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public ArticleWithCommentsDto getArticle(Long articleId) {
-        return null;
+        return articleRepository.findById(articleId).map(ArticleWithCommentsDto::from)
+                .orElseThrow(() -> new EntityNotFoundException("게시글이 없습니다. articleId : " + articleId.toString()));
     }
 
     public void saveArticle(ArticleDto dto) {
