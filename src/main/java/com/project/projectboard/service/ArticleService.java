@@ -32,7 +32,8 @@ public class ArticleService {
     }
 
     @Transactional(readOnly = true)
-    public ArticleWithCommentsDto getArticle(Long articleId) {        return null;
+    public ArticleWithCommentsDto getArticle(Long articleId) {
+        return null;
     }
 
     public void saveArticle(ArticleDto dto) {
