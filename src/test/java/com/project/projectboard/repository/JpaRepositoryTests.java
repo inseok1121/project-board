@@ -2,6 +2,7 @@ package com.project.projectboard.repository;
 
 import com.project.projectboard.config.JpaConfig;
 import com.project.projectboard.domain.Article;
+import com.project.projectboard.domain.UserAccount;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,78 +13,84 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("JPA 연결 Test")
+@DisplayName("JPA 연결 테스트")
 @Import(JpaConfig.class)
 @DataJpaTest
-public class JpaRepositoryTests {
+class JpaRepositoryTests {
 
     private final ArticleRepository articleRepository;
     private final ArticleCommentRepository articleCommentRepository;
+    private final UserAccountRepository userAccountRepository;
 
     public JpaRepositoryTests(
             @Autowired ArticleRepository articleRepository,
-            @Autowired ArticleCommentRepository articleCommentRepository) {
+            @Autowired ArticleCommentRepository articleCommentRepository,
+            @Autowired UserAccountRepository userAccountRepository
+    ) {
         this.articleRepository = articleRepository;
         this.articleCommentRepository = articleCommentRepository;
+        this.userAccountRepository = userAccountRepository;
     }
 
+    @DisplayName("select 테스트")
     @Test
-    void SelectTest() {
-        //given
+    void givenTestData_whenSelecting_thenWorksFine() {
+        // Given
 
-        //when
+        // When
         List<Article> articles = articleRepository.findAll();
-        //then
+
+        // Then
         assertThat(articles)
                 .isNotNull()
-                .hasSize(50);
+                .hasSize(123);
     }
 
+    @DisplayName("insert 테스트")
     @Test
-    @DisplayName("Insert Test")
-    void InsertTest(){
-        //given
-        int prevCount = articleRepository.findAll().size();
-        //when
-        Article article = Article.of("new article", "new contents", "new hashtag");
+    void givenTestData_whenInserting_thenWorksFine() {
+        // Given
+        long previousCount = articleRepository.count();
+        UserAccount userAccount = userAccountRepository.save(UserAccount.of("uno", "pw", null, null, null));
+        Article article = Article.of(userAccount, "new article", "new content", "#spring");
+
+        // When
         articleRepository.save(article);
-        int newCount = articleRepository.findAll().size();
 
-        //then
-        assertThat(newCount)
-                .isEqualTo(prevCount+1);
-
+        // Then
+        assertThat(articleRepository.count()).isEqualTo(previousCount + 1);
     }
 
+    @DisplayName("update 테스트")
     @Test
-    @DisplayName("Update Test")
-    void UpdateTest(){
-
-        //given
-        String newHashtag = "#new Hashtag";
+    void givenTestData_whenUpdating_thenWorksFine() {
+        // Given
         Article article = articleRepository.findById(1L).orElseThrow();
-        article.setHashtag(newHashtag);
-        //when
+        String updatedHashtag = "#springboot";
+        article.setHashtag(updatedHashtag);
+
+        // When
         Article savedArticle = articleRepository.saveAndFlush(article);
-        //then
-        assertThat(savedArticle.getHashtag())
-                .isEqualTo(newHashtag);
+
+        // Then
+        assertThat(savedArticle).hasFieldOrPropertyWithValue("hashtag", updatedHashtag);
     }
 
+    @DisplayName("delete 테스트")
     @Test
-    @DisplayName("Delete Test")
-    void DeleteTest(){
-
-        //given
+    void givenTestData_whenDeleting_thenWorksFine() {
+        // Given
         Article article = articleRepository.findById(1L).orElseThrow();
-        int prevArticleCount = articleRepository.findAll().size();
-        int prevArticleCommentCount = articleCommentRepository.findAll().size();
-        int commentCount = article.getArticleComments().size();
-        //when
+        long previousArticleCount = articleRepository.count();
+        long previousArticleCommentCount = articleCommentRepository.count();
+        int deletedCommentsSize = article.getArticleComments().size();
+
+        // When
         articleRepository.delete(article);
 
-        //then
-        assertThat(articleRepository.findAll().size()).isEqualTo(prevArticleCount-1);
-        assertThat(articleCommentRepository.findAll().size()).isEqualTo(prevArticleCommentCount-commentCount);
+        // Then
+        assertThat(articleRepository.count()).isEqualTo(previousArticleCount - 1);
+        assertThat(articleCommentRepository.count()).isEqualTo(previousArticleCommentCount - deletedCommentsSize);
     }
+
 }
