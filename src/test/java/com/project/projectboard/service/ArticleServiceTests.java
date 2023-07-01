@@ -7,6 +7,7 @@ import com.project.projectboard.dto.ArticleDto;
 import com.project.projectboard.dto.ArticleWithCommentsDto;
 import com.project.projectboard.dto.UserAccountDto;
 import com.project.projectboard.repository.ArticleRepository;
+import com.project.projectboard.repository.UserAccountRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
@@ -32,6 +35,7 @@ class ArticleServiceTests {
     @InjectMocks private ArticleService sut;
 
     @Mock private ArticleRepository articleRepository;
+    @Mock private UserAccountRepository userAccountRepository;
 
     @DisplayName("검색어 없이 게시글을 검색하면, 게시글 페이지를 반환한다.")
     @Test
@@ -74,7 +78,7 @@ class ArticleServiceTests {
         given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
 
         // When
-        ArticleWithCommentsDto dto = sut.getArticle(articleId);
+        ArticleDto dto = sut.getArticle(articleId);
 
         // Then
         assertThat(dto)
@@ -90,10 +94,8 @@ class ArticleServiceTests {
         // Given
         Long articleId = 0L;
         given(articleRepository.findById(articleId)).willReturn(Optional.empty());
-
         // When
         Throwable t = catchThrowable(() -> sut.getArticle(articleId));
-
         // Then
         assertThat(t)
                 .isInstanceOf(EntityNotFoundException.class)
@@ -106,12 +108,14 @@ class ArticleServiceTests {
     void givenArticleInfo_whenSavingArticle_thenSavesArticle() {
         // Given
         ArticleDto dto = createArticleDto();
+        given(userAccountRepository.getReferenceById(dto.userAccountDto().userId())).willReturn(createUserAccount());
         given(articleRepository.save(any(Article.class))).willReturn(createArticle());
 
         // When
         sut.saveArticle(dto);
 
         // Then
+        then(userAccountRepository).should().getReferenceById(dto.userAccountDto().userId());
         then(articleRepository).should().save(any(Article.class));
     }
 
@@ -122,9 +126,8 @@ class ArticleServiceTests {
         Article article = createArticle();
         ArticleDto dto = createArticleDto("새 타이틀", "새 내용", "#springboot");
         given(articleRepository.getReferenceById(dto.id())).willReturn(article);
-
         // When
-        sut.updateArticle(dto);
+        sut.updateArticle(dto.id(), dto);
 
         // Then
         assertThat(article)
@@ -142,7 +145,7 @@ class ArticleServiceTests {
         given(articleRepository.getReferenceById(dto.id())).willThrow(EntityNotFoundException.class);
 
         // When
-        sut.updateArticle(dto);
+        sut.updateArticle(dto.id(), dto);
 
         // Then
         then(articleRepository).should().getReferenceById(dto.id());
@@ -154,10 +157,8 @@ class ArticleServiceTests {
         // Given
         Long articleId = 1L;
         willDoNothing().given(articleRepository).deleteById(articleId);
-
         // When
         sut.deleteArticle(1L);
-
         // Then
         then(articleRepository).should().deleteById(articleId);
     }
@@ -174,12 +175,16 @@ class ArticleServiceTests {
     }
 
     private Article createArticle() {
-        return Article.of(
+        Article article = Article.of(
                 createUserAccount(),
                 "title",
                 "content",
                 "#java"
         );
+
+        ReflectionTestUtils.setField(article, "id", 1L);
+
+        return article;
     }
 
     private ArticleDto createArticleDto() {
