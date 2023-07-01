@@ -22,7 +22,7 @@ public class ArticleCommentController {
     ){
 
         articleCommentService.saveArticleComment(articleCommentRequest.toDto(
-                UserAccountDto.of("uno", "pw", "nickname@gamil.com", "nickname", "memo")
+                UserAccountDto.of("id", "pw", "nickname@gamil.com", "nickname", "memo")
         ));
 
         return "redirect:/articles/"+articleCommentRequest.articleId();
